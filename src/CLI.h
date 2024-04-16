@@ -97,9 +97,12 @@ typedef struct _CLIClientList {
 #define CLI_IS_PREFIX 0x01
 
 typedef struct _CLICommand {
-    char *command;
+    const char *command;
     uint8_t flags;
     int (*function)(CLIClient *, int, char **);
+    const char *action;
+    const char *usage;
+    const char *help;
     struct _CLICommand *next;
 } CLICommand;
 
@@ -112,14 +115,17 @@ class CLIServer : public Print {
 
         int (*_onConnect)(CLIClient *, int, char **);
         int (*_onDisconnect)(CLIClient *, int, char **);
+        int _showHelp(CLIClient c, int argc, char** argv);
 
     public:
         CLIServer();
         void setCaseInsensitive();
         void setCaseSensitive();
         boolean isCaseSensitive();
-        void addCommand(const char *command, int (*function)(CLIClient *, int, char **));
-        void addPrefix(const char *command, int (*function)(CLIClient *, int, char **));
+        void addCommand(const char *command, int (*function)(CLIClient *, int, char **),
+            const char* action = NULL, const char* usage = NULL, const char* help = NULL);
+        void addPrefix(const char *command, int (*function)(CLIClient *, int, char **),
+            const char* action = NULL, const char* usage = NULL, const char* help = NULL);
         CLIClient *addClient(Stream *dev, void *data);
         CLIClient *addClient(Stream &dev, void *data);
         CLIClient *addClient(Stream *dev);

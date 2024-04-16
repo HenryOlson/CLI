@@ -83,14 +83,18 @@ CLIClient *CLIServer::addClient(Stream *dev, void *data) {
     return newClient->client;
 }
 
-void CLIServer::addCommand(const char *command, int (*function)(CLIClient *, int, char **)) {
+void CLIServer::addCommand(const char *command, int (*function)(CLIClient *, int, char **),
+            const char* action, const char* usage, const char* help) {
     CLICommand *scan;
     CLICommand *newCommand;
 
     newCommand = (CLICommand *)malloc(sizeof(CLICommand));
-    newCommand->command = strdup(command);
+    newCommand->command = command;
     newCommand->flags = 0;
     newCommand->function = function;
+    newCommand->action = action;
+    newCommand->usage = usage;
+    newCommand->help = help;
     newCommand->next = NULL;
 
     if (commands == NULL) {
@@ -101,7 +105,8 @@ void CLIServer::addCommand(const char *command, int (*function)(CLIClient *, int
     scan->next = newCommand;
 }
 
-void CLIServer::addPrefix(const char *command, int (*function)(CLIClient *, int, char **)) {
+void CLIServer::addPrefix(const char *command, int (*function)(CLIClient *, int, char **),
+            const char* action, const char* usage, const char* help) {
     CLICommand *scan;
     CLICommand *newCommand;
 
@@ -109,6 +114,9 @@ void CLIServer::addPrefix(const char *command, int (*function)(CLIClient *, int,
     newCommand->command = strdup(command);
     newCommand->flags = CLI_IS_PREFIX;
     newCommand->function = function;
+    newCommand->action = action;
+    newCommand->usage = usage;
+    newCommand->help = help;
     newCommand->next = NULL;
 
     if (commands == NULL) {
@@ -216,6 +224,11 @@ int CLIClient::parseCommand() {
 		argv[argc++] = w;
 		w = getWord(NULL);
 	}
+
+    if(strcmp(argv[0], "help") == 0) {
+        return CLI._showHelp(this, argc, argv);
+    }
+
     if (CLI.isCaseSensitive()) {
         for (scan = CLI.commands; scan; scan = scan->next) {
             if ((scan->flags & CLI_IS_PREFIX) == 0) {
@@ -418,5 +431,61 @@ void CLIServer::removeClient(Stream *dev) {
             free(oldClient);
             return;
         }
+    }
+}
+
+int CLIServer::_showHelp(CLIClient c, int argc, char** argv) {
+    CLICommand *scan;
+    char lineBuf[100];
+    switch (argc) {
+        case 1:
+            // top-level help
+            c.println("commands:");
+            for (scan = CLI.commands; scan; scan = scan->next) {
+                sprintf(lineBuf, "%-20s - ", scan->command);
+                c.print(lineBuf);
+                if(scan->action != NULL) {
+                    c.print(scan->action);
+                    if(scan->usage != NULL) {
+                        c.print(", ");
+                    }
+                }
+                if(scan->usage != NULL) {
+                    c.print("usage: ");
+                    c.print(scan->usage);
+                }
+                c.println("");
+            }
+            c.println("type 'help <cmd>' for more specifics");
+            return 0;
+        case 2:
+            for (scan = CLI.commands; scan; scan = scan->next) {
+                if (strcmp(scan->command, argv[1]) == 0) {
+                    c.print("Command: ");
+                    c.print(scan->command);
+                    if(scan->action != NULL) {
+                        c.print(" - ");
+                        c.println(scan->action);
+                    } else {
+                        c.println("");
+                    }
+                    if(scan->usage != NULL) {
+                        c.print("Usage: ");
+                        c.println(scan->usage);
+                    }
+                    if(scan->help != NULL) {
+                        c.println(scan->help);
+                    }
+                    return 0;
+                }
+            }
+            c.print(argv[0]);
+            c.print(": ");
+            c.print(argv[1]);
+            c.println(" - unknown command");
+            return 1;
+        default:
+            c.println("invalid help command");
+            return 2;
     }
 }
