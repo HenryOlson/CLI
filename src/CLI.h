@@ -67,7 +67,7 @@ class CLIClient : public Stream {
 
         CLIClient(Stream *d);
         virtual ~CLIClient();
-        void echo(boolean e) { willEcho = e; }
+        void echo(boolean e);
         void printPrompt();
         int readline();
         int parseCommand();

@@ -181,8 +181,8 @@ int CLIClient::readline() {
 
 	while (readch > 0) {
 		switch (readch) {
-			case '\r': // Ignore CR
-			case '\n': // Return on NL
+			case '\r': // Return on CR, NL
+			case '\n':
 				rpos = pos;
 				pos = 0;  // Reset position index ready for next time
 				if (willEcho) dev->println();
@@ -340,6 +340,10 @@ void CLIClient::write(uint8_t c) {
 #endif
 }
 
+void CLIClient::echo(boolean e) {
+    willEcho = e;
+};
+
 void CLIClient::setPrompt(const char *p) {
     if (prompt != NULL) {
         free(prompt);
@@ -454,9 +458,9 @@ int CLIServer::_showHelp(CLIClient c, int argc, char** argv) {
                     c.print("usage: ");
                     c.print(scan->usage);
                 }
-                c.println("");
+                c.println();
             }
-            c.println("type 'help <cmd>' for more specifics");
+            c.println("type 'help {cmd}' for more specifics");
             return 0;
         case 2:
             for (scan = CLI.commands; scan; scan = scan->next) {
